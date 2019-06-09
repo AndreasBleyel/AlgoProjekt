@@ -1,0 +1,119 @@
+---
+title: "Proposal"
+author: "Andreas Bleyel, Birgit Breitenlechner, Thomas Honeder und Cosmin Iacob"
+date: "09.04.2019"
+output: html_document
+---
+
+```{r Librarys laden, include=FALSE}
+# Prüfen ob benötigte Pakete bereits installiert sind und falls nicht, installieren und laden. 
+# Wird durch Paket "pacman" automatisiert übernommen
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(caret, dplyr, knitr, kableExtra, e1071, randomForest, rpart.plot, tidyverse, ISLR, gbm)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Daten einlesen und Seed setzen, include=FALSE}
+train <- read.csv("./train.csv")
+test <- read.csv("./test.csv")
+set.seed(1337)
+```
+## Der Datensatz
+
+Bei dem gewählten Datensatz handelt es sich um den [*Ames Housing*](https://www.kaggle.com/c/house-prices-advanced-regression-techniques) Datensatz. Dieser Datensatz wurde von Dean De Cock als eine aktuelle Alternative zum veralteten Boston Housing Dataset erstellt. Die Daten enthalten alle Immobilientransaktionen aus Ames, Iowa, zwischen 2006 und 2010. Im Vergleich dazu, sind die Daten des Boston Housing Datensatz aus dem Jahr 1970 und die Preise nicht länger realistisch ("The original data set is from the 70’s and the housing prices have become unrealistic for today’s market.")
+
+Der Datensatz enthält 2919 Daten verteilt in 1460 Training- und 1459 Testdaten. Jede Immobilie ist mit Hilfe von 80 Variablen beschrieben. Es gibt 43 Factors mit 2 bis 25 Levels. Außer den Factors sind 37 Integer Variablen vorhanden. Die Zielvariable ist SalePrice. Zu den wichtigsten Prädiktoren gehören unserer Meinung nach YearBuilt, YrSold, LotArea (Integer), LotConfig, Neighborhood und HouseStyle. Für Erstellung des Modells könnte man die Integer Prädiktoren in Factor umwandeln z.B.: BsmtFullBath, GarageCars oder einen neuen Prädiktor erstellen z.B.: IstHausRemodeliert.
+
+### Warum wurde dieser Datensatz gewählt
+
+Den Datensatz haben wir gewählt, da es privat für uns Studierende durchaus nützlich zu wissen sein kann, welche Faktoren sich auf den Preis von Immobilien auswirken. Außerdem eignen wir uns in diesem Bereich ein Basisdomänenwissen an, das in Kombination mit Data Science zu interessanten und vielversprechenden Karrierechancen führen kann. Immer mehr Unternehmen, die im Immobiliengeschäft tätig sind, setzen auf automatisierte und informationsunterstützte Analyseverfahren, da sie sich so von ihren Konkurrenten abheben können.
+
+```{r}
+sample_n(train, 3)
+```
+
+## Die geplante statistische Lernaufgabe
+
+Grundsätzlich möchten wir in unserem Datensatz die Variable *SalePrice* prädiktieren. Da es sich bei unserer Responsevariable um einen numerischen Wert handelt, werden wir eine Regressionsanalyse durchführen. Nach Abschluss des Trainings unseres Modells werden wir anhand der Testdaten prüfen, inwiefern unser Modell eine Aussagekraft besitzt bzw. um wie viel unsere Prädiktionen von den tatsächlichen Werten abweichen. Da es sich um einen Datensatz aus einer Kaggle Competition handelt, ist der SalesPrice in den gegebenen Testdaten nicht bekannt. Wir müssen daher einen Teil der Trainingsdaten abzweigen und als Testdaten verwenden.
+
+Geplant ist es während der Projektphase, mehrere Varianten des supervised learnings anzuwenden und diese miteinander zu vergleichen. Wir möchten uns nicht auf ein Modell im Vorhinein festlegen, sondern in der Arbeit ein gut geeignetes finden.
+
+Prinzipiell könnte sich für unseren Datensatz ein lineares Modell eignen, das auch sicher Verwendung in unserer Analyse finden wird. Da wir mit Random Forests im Algorithmik und Statistik 2 LAB bereits gute Erfahrungen in Bezug auf Test- und Fehlergenauigkeit gemacht haben, wird diese Ensemble-Methode voraussichtlich auch Verwendung in unserer Analyse finden. In Anlehnung an das *scikit-learn algorithm cheatsheet* werden wir auch eine Lasso-, Ridge- und ElasticNet-Regression durchführen und deren Vor- und Nachteile untersuchen bzw. auch anhand einer SVM prüfen, inwiefern sie sich für die Problemstellung eignet.
+
+
+## Voranalyse
+
+### Daten bereinigen
+
+Einige Spalten enthalten sehr viele NA's. Da die `lm`-Funktion Zeilen ignoriert, die NA's enthalten, löschen wir diese Spalten. Ansonsten würden keine Trainings-Datensätze mehr übrig bleiben. Außerdem muss die Spalte `Utilites` gelöscht werden, da hier nach Bereinigung nur mehr eine Ausprägung übrigbleibt. Sollen die Daten in der Analyse trotzdem genutzt werden, könnte man die NA's in eine neue Faktor-Kategorie umwandeln.
+
+```{r}
+summary( train[, which(names(train) %in% c('Alley','Utilities','PoolQC','Fence','MiscFeature'))])
+train = train[, -which(names(train) %in% c('Alley','Utilities','PoolQC','Fence','MiscFeature'))]
+```
+
+### Erstes Modell erstellen
+```{r}
+first_model = lm(SalePrice ~ ., train)
+```
+
+### Erste Prediction
+
+Testdaten laden und die gleichen Spalten wie bei den Trainingsdaten löschen
+```{r}
+test = read.csv('test.csv')
+test = test[, -which(names(test) %in% c('Alley','Utilities','PoolQC','Fence','MiscFeature'))]
+```
+
+Es gibt Ausprägungen in Factor-Variablen, die in den Trainingsdaten nicht vorhanden waren. Diese Datensätze werden fürs erste gelöscht.
+
+```{r}
+test = test[test$MSZoning != 'RH',]
+test = test[test$Condition1 != 'RRNe',]
+test = test[test$Condition2 != 'Feedr',]
+test = test[test$RoofStyle != 'Shed',]
+test = test[test$Exterior1st != 'AsphShn',]
+test = test[test$Exterior1st != 'BrkComm',]
+test = test[test$Exterior2nd != 'CBlock',]
+test = test[test$ExterCond != 'Po',]
+test = test[test$Foundation != 'Slab',]
+test = test[test$Foundation != 'Wood',]
+test = test[test$BsmtCond != 'Po',]
+test = test[test$Heating != 'Grav',]
+test = test[test$HeatingQC != 'Po',]
+test = test[test$Electrical != 'FuseP',]
+test = test[test$Functional != 'Sev',]
+test = test[test$GarageQual != 'Po',]
+test = test[test$SaleType != 'Oth',]
+test = test[test$SaleCondition != 'AdjLand',]
+```
+
+Dann werden noch Testdatensätze, die NA's enthalten, gelöscht, da für diese keine Prediction gemacht werden kann.
+
+```{r}
+test = test[complete.cases(test),]
+```
+
+Jetzt kann die erste Prediction gemacht werden:
+```{r}
+pred = predict(first_model, test)
+```
+Es kommt die Warnung `Vorhersage durch Fit ohne vollen Rang mag täuschen`. Das bedeutet der Rang der Datenmatrix ist kleiner als die Anzahl der Koeffizienten.
+
+```{r}
+first_model$rank
+length(first_model$coefficients)
+```
+
+Es gibt also Spaltenvektoren, die voneinander linear abhängig sind. Herauszufinden welche das sind und wie damit umzugehen ist, wird dann ein Teil der Gruppenarbeit sein.
+
+#### Erste Ergebnisse der Prediction
+```{r}
+head(pred)
+```
+
+Wir haben somit gezeigt, dass die Daten geladen werden können und erfolgreich eine erste Prediction gemacht.
+Die Qualität der Prediction von verschiedenen Modellen zu messen und das am besten geeignete zu finden, ist das Ziel unserer Arbeit.
