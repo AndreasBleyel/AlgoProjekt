@@ -3,7 +3,11 @@
 
 # ## Helper Funktionen
 
-# In[ ]:
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+from scipy import stats
 
 
 class bcolors:
@@ -18,43 +22,43 @@ class bcolors:
     
 target = 'SalePrice'
 
-def checkFeature(feature):
-    checkNAs(feature)
-    checkForNegatives(feature)
-    overview(feature)
-    plotDistribution(feature)
+def checkFeature(feature, data):
+    checkNAs(feature, data)
+    checkForNegatives(feature, data)
+    overview(feature, data)
+    plotDistribution(feature, data)
     if feature != target:
-        plotRelationToTarget(feature)
+        plotRelationToTarget(feature, data)
     
-def checkNAs(feature):
-    if train[feature].isna().sum() > 0:
-        print(bcolors.FAIL + "Sum NAs: " + str(train[feature].isna().sum()))
+def checkNAs(feature, data):
+    if data[feature].isna().sum() > 0:
+        print(bcolors.FAIL + "Sum NAs: " + str(data[feature].isna().sum()))
     else:
         print(bcolors.OKGREEN + "No NAs" +bcolors.ENDC)
 
-def checkForNegatives(feature):
-    if any(train[feature]<0):
+def checkForNegatives(feature, data):
+    if any(data[feature]<0):
         print (bcolors.WARNING + "Warning feature has negative value!" + bcolors.ENDC)
     else:
         print (bcolors.OKGREEN + "No negative values" + bcolors.ENDC)
 
-def plotDistribution(feature):
-    sns.distplot(train[feature], fit=norm);
+def plotDistribution(feature, data):
+    sns.distplot(data[feature], fit=norm);
     fig = plt.figure()
-    res = stats.probplot(train[feature], plot=plt)
+    res = stats.probplot(data[feature], plot=plt)
     
-def plotRelationToTarget(feature):
-    data_temp = pd.concat([train[target], train[feature]], axis=1)
+def plotRelationToTarget(feature, data):
+    data_temp = pd.concat([data[target], data[feature]], axis=1)
     data_temp.plot.scatter(x=feature, y=target, ylim=(0,800000));
         
-def overview(feature):
-    print(train[feature].describe())
+def overview(feature, data):
+    print(data[feature].describe())
     print(bcolors.HEADER + "Head" +bcolors.ENDC)
-    print(train[feature].head(3))
+    print(data[feature].head(3))
     
-def printSkewKurt(feature):
-    print("Skewness: %f" % train[feature].skew())
-    print("Kurtosis: %f" % train[feature].kurt())
+def printSkewKurt(feature, data):
+    print("Skewness: %f" % data[feature].skew())
+    print("Kurtosis: %f" % data[feature].kurt())
     
 def calculate_performance(prediction, actual, scaler):
     if scaler == True:
