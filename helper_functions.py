@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## Helper Funktionen
+# Helper Funktionen
 
 import pandas as pd
 import seaborn as sns
@@ -22,11 +22,11 @@ class bcolors:
     
 target = 'SalePrice'
 
-def checkFeature(feature, data):
+def checkFeature(feature, data, is_cat):
     checkNAs(feature, data)
     checkForNegatives(feature, data)
     overview(feature, data)
-    plotDistribution(feature, data)
+    plotDistribution(feature, data, is_cat)
     if feature != target:
         plotRelationToTarget(feature, data)
     
@@ -42,10 +42,11 @@ def checkForNegatives(feature, data):
     else:
         print (bcolors.OKGREEN + "No negative values" + bcolors.ENDC)
 
-def plotDistribution(feature, data):
+def plotDistribution(feature, data, is_cat):
     sns.distplot(data[feature], fit=norm);
     fig = plt.figure()
-    res = stats.probplot(data[feature], plot=plt)
+    if not is_cat:
+        res = stats.probplot(data[feature], plot=plt)
     
 def plotRelationToTarget(feature, data):
     data_temp = pd.concat([data[target], data[feature]], axis=1)
