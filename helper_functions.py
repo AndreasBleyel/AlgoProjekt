@@ -4,10 +4,13 @@
 # Helper Funktionen
 
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 from scipy import stats
+import math
+from sklearn.metrics import mean_squared_error
 
 
 class bcolors:
@@ -88,3 +91,12 @@ def print_performance(measure_tuple):
     print("Overall R² is {}".format(str(r2)))
     print("Median absolute error is {}".format(str(mae)))
 
+def eval_model(model, test_X, test_y):
+    r2 = model.score(test_X, test_y)
+
+    pred_y = model.predict(test_X)
+    rmse = math.sqrt(mean_squared_error(np.exp(test_y), np.exp(pred_y)))
+    
+    print('r2 = ' + str(r2))
+    print('rmse = ' + str(rmse))
+    return rmse, r2
