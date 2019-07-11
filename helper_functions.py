@@ -52,8 +52,9 @@ def plotDistribution(feature, data, is_cat):
         res = stats.probplot(data[feature], plot=plt)
     
 def plotRelationToTarget(feature, data):
+    colors = np.random.rand(np.size(data[feature],0))
     data_temp = pd.concat([data[target], data[feature]], axis=1)
-    data_temp.plot.scatter(x=feature, y=target, ylim=(0,800000));
+    data_temp.plot.scatter(x=feature, y=target, c=colors);
         
 def overview(feature, data):
     print(data[feature].describe())
