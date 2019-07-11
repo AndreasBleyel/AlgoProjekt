@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# ## Helper Funktionen
+# Helper Funktionen
 
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 from scipy import stats
+import math
+from sklearn.metrics import mean_squared_error
 
 
 class bcolors:
@@ -22,11 +25,11 @@ class bcolors:
     
 target = 'SalePrice'
 
-def checkFeature(feature, data):
+def checkFeature(feature, data, is_cat):
     checkNAs(feature, data)
     checkForNegatives(feature, data)
     overview(feature, data)
-    plotDistribution(feature, data)
+    plotDistribution(feature, data, is_cat)
     if feature != target:
         plotRelationToTarget(feature, data)
     
@@ -42,10 +45,11 @@ def checkForNegatives(feature, data):
     else:
         print (bcolors.OKGREEN + "No negative values" + bcolors.ENDC)
 
-def plotDistribution(feature, data):
+def plotDistribution(feature, data, is_cat):
     sns.distplot(data[feature], fit=norm);
     fig = plt.figure()
-    res = stats.probplot(data[feature], plot=plt)
+    if not is_cat:
+        res = stats.probplot(data[feature], plot=plt)
     
 def plotRelationToTarget(feature, data):
     data_temp = pd.concat([data[target], data[feature]], axis=1)
@@ -87,3 +91,12 @@ def print_performance(measure_tuple):
     print("Overall R² is {}".format(str(r2)))
     print("Median absolute error is {}".format(str(mae)))
 
+def eval_model(model, test_X, test_y):
+    r2 = model.score(test_X, test_y)
+
+    pred_y = model.predict(test_X)
+    rmse = math.sqrt(mean_squared_error(np.exp(test_y), np.exp(pred_y)))
+    
+    print('r2 = ' + str(r2))
+    print('rmse = ' + str(rmse))
+    return rmse, r2
